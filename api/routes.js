@@ -13,11 +13,22 @@ module.exports = function(app) {
     .get(controller.getEvents);
 
   // Mark attendance for the individual given their ID
-  app.route('/addAttendance/')
+  app.route('/addAttendance')
     .post(controller.addAttendance);
 
   // Get attendance for individuals given the specific event
   app.route('/getAttendance/:event')
     .get(controller.getAttendance);
+
+  app.route('/test1/:name')
+    .get(controller.test1);
+
+// Uncomment this code to allow users to be added from outside the server
+//  app.route('/addUser')
+//    .post(controller.addUser);
+
+  // Retrieves user data
+  app.route('/getUser')
+    .post(controller.getUser);
 
 };
