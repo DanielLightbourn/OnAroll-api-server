@@ -8,15 +8,15 @@ let POLYLIMIT = 9999;
 // Returns an event with relavent information
 // Update as more information is required
 exports.getEventInfo = (eventKey) => {
-   let query1 = "SELECT e.event_ID,e.eventKey,e.allowDup,e.timeStart,"
-                      + "e.timeEnd,et.name AS eventType,et.timeDependent,"
-                      + "et.polyOnly "
-              + "FROM Events e, EventTypes et "
-              + "WHERE e.type_ID = et.type_ID AND e.eventKey = ?";
+   return new Promise((resolve, reject) => {
+      let query1 = "SELECT e.event_ID,e.eventKey,e.allowDup,e.timeStart,"
+                         + "e.timeEnd,et.name AS eventType,et.timeDependent,"
+                         + "et.polyOnly "
+                 + "FROM Events e, EventTypes et "
+                 + "WHERE e.type_ID = et.type_ID AND e.eventKey = ?";
 
-   return d.query(query1, [eventKey])
-   .next((rows) => {
-      return new Promise((resolve, reject) => {
+      return d.query(query1, [eventKey])
+      .next((rows) => {
          if (rows.length < 1) {
             //res.json({status: 100, message: "No event(s) exists with that eventKey"});
             reject(new Error("New events exist with that key"));
