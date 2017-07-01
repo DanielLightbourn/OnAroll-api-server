@@ -19,14 +19,18 @@ function handleDatabase(query, sData) {
       pool.getConnection((error, connection) => {
          if (error) {
             reject(new Error("Failed to get connection from pool"));
+            console.log("failed to get connection");
          }
 
          connection.query(query, sData, function(error, rows){
             if (error) {
                reject(new Error("Failed to query properly"));
+               console.log("failed to query");
             }
             connection.release();
+            console.log("Connection released");
             resolve(rows);
+            console.log("rows:", rows);
          });
 
          connection.on('error', function (error){

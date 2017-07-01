@@ -17,12 +17,14 @@ exports.getEventInfo = (eventKey) => {
 
       d.query(query1, [eventKey])
       .then((rows) => {
+         console.log("Rows inside getEventInfo", rows);
          if (rows.length < 1) {
             //res.json({status: 100, message: "No event(s) exists with that eventKey"});
             reject(new Error("New events exist with that key"));
          }else {
             resolve(rows);
          }
+
       });
    });
 };
