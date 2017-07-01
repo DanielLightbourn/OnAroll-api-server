@@ -48,9 +48,11 @@ exports.addUser = function(req, res) {
 
    var sData = [user_ID, FirstName, LastName, Email, UserName];
 
-   d.query(query1, sData, function (error, rows){
-      res.json({message: "UserID: " + user_ID + " added successfully."});
-   });
+   d.query(query1, sData)
+   .next(rows => {
+      res.json({status: 200, message: "UserID: " + user_ID + " added successfully."});
+   })
+   .catch(() => {res.json({status: 203, message: "Failed to add user"})});
 };
 
 // Pulls a user ID from the database
@@ -64,12 +66,12 @@ exports.getUser = function(req, res) {
       return;
    }
    var data = [req.body.user_ID];
-   d.query(query1, data, function(error, rows){
+   d.query(query1, data)
+   .next(rows => {
       if (rows.length < 1){
-         res.json({status: 200, message:"No users exist"});
+         res.json({status: 201, message:"No users exist"});
       }else{
-         var mess = "Users:\n";
-         res.json({status: 200, message: rows});
+         res.json({status: 200, message: "User added successfully"});
       }
    });
 };
@@ -77,42 +79,28 @@ exports.getUser = function(req, res) {
 // Adds an attendance record for a specified event
 // POST message contains user_ID,eventKey,(firstName,lastName)
 
-exports.addAttendance = function(req, res) {
+exports.addAttendance = (req, res) => {
    if (isNaN(req.body.user_ID)) {
       res.json({status: 100, message: "user_ID is not valid! "
                                     + "Error: user_ID must be a number"});
       return;
    }
-   eventTest(req.body.eventKey, res, function eventTestCallback(error, res, rows) {
-      if (rows.length < 1) {
-         res.json({status: 100, message: "No event(s) exists with that eventKey"});
-         return;
-      }
-      if (error) {
-         // Do error loggin here
-      }
-      t.handleRows(rows, req.body.user_ID, 0, 0, res, function(error, entries, res) {
-         if (entries == 0) {
-            res.json({status: 200, message: "No attendance entry added!"});
-         }else {
-            res.json({status: 200, message: "Added " + entries + " entries to "
-                                          + "attendance table"});
-         }
+   t.getEventInfo(req.body.eventKey)
+   .next((rows) => {
+      // Adds user_ID for dependency checks
+      rows = rows.map(row => {
+         row["user_ID"] = req.body.user_ID;
+         return row;
       });
-   });
-};
-
-var eventTest = function(eventKey, res, callback) {
-   var query1 = "SELECT e.event_ID,e.eventKey,e.allowDup,e.timeStart,"
-                      + "e.timeEnd,et.name AS eventType,et.timeDependent,"
-                      + "et.polyOnly "
-              + "FROM Events e, EventTypes et "
-              + "WHERE e.type_ID = et.type_ID AND e.eventKey = ?";
-   var data = [eventKey];
-   d.query(query1, data, function(error, rows) {
-      if (error) {
-         // Do error logging here
-      }
-      callback("", res, rows);
-   });
+      return Promise.all(rows.map(row => t.handleRow(row)));
+   })
+   .next((eventChecks) => {
+      let entries = 0;
+      eventChecks.forEach((e) => {if (e) {entries++;}});
+      res.json({status: 200, message: "Added " + entries + " entries to "
+                                    + "attendance table"});
+   })
+   .catch((error) => {
+      res.json({status: 200, message: "No attendance entry added!"})
+   })
 };

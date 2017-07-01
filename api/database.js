@@ -14,30 +14,24 @@ var pool = mysql.createPool({
 // query: string containing SQL formated query    Ex: "SELECT * FROM ?"
 // sData: sanitized array of data for query       Ex: ["Users"]
 // response: function that will act on the response
-function handleDatabase(query, sData, response) {
-   
-   pool.getConnection(function (error, connection){
-      if (error) {
-         //response.json({"code": 100, "status": "Error when connecting to the database"});
-         // TODO: Add connection specific error
-         return;
-      }
+function handleDatabase(query, sData) {
+   return new Promise((resolve, reject) => {
+      pool.getConnection((error, connection) => {
+         if (error) {
+            reject(new Error("Failed to get connection from pool"));
+         }
 
-      //console.log('client connected with id ' + connection.threadId);
-
-         // This should be the lowest layer of the database call
-         // the query should be sanitized by the command specific call
          connection.query(query, sData, function(error, rows){
             if (error) {
-               // do error loggin here
+               reject(new Error("Failed to query properly"));
             }
             connection.release();
-            response("", rows);
-      });
-      
-      connection.on('error', function (error){
-         // TODO: Add connection error
-         return;
+            resolve(rows);
+         });
+
+         connection.on('error', function (error){
+            reject(new Error("Connection Error"));
+         });
       });
    });
 }
@@ -54,9 +48,9 @@ function handleDatabase(query, sData, response) {
 
 module.exports.pool = pool;
 module.exports.query = handleDatabase;
-module.exports.close = function(){
-   setTimeout(function(){
-      pool.end(function(){
+module.exports.close = () => {
+   setTimeout(() => {
+      pool.end(() => {
          console.log("Pool closed...");
       });
       console.log("Done!");
