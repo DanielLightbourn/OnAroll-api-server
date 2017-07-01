@@ -16,7 +16,7 @@ exports.getEventInfo = (eventKey) => {
                  + "WHERE e.type_ID = et.type_ID AND e.eventKey = ?";
 
       return d.query(query1, [eventKey])
-      .next((rows) => {
+      .then((rows) => {
          if (rows.length < 1) {
             //res.json({status: 100, message: "No event(s) exists with that eventKey"});
             reject(new Error("New events exist with that key"));
@@ -31,8 +31,8 @@ exports.getEventInfo = (eventKey) => {
 exports.handleRow = (row) => {
    return new Promise((resolve, reject) => {
       checkDependencies(row)
-      .next(insertIntoAttendence(row["eventKey"], row["user_ID"]))
-      .next(() => {resolve(true)})
+      .then(insertIntoAttendence(row["eventKey"], row["user_ID"]))
+      .then(() => {resolve(true)})
       .catch(() => {resolve(false)});
    });
 };
@@ -40,14 +40,14 @@ exports.handleRow = (row) => {
 
 let checkDependencies = (row) => {
    return new Promise((resolve, reject) => {
-      let checks = [new Promise().resolve(true)];
+      let checks = [true];
       // Add dependency checks here
       if (row["timeDependent"]) {
          checks.push(withinTime(row["timeStart"], row["timeEnd"]))}
       if (row["polyOnly"]) {checks.push(isPolyStudent(row["user_ID"]))}
 
       Promise.all(checks)
-      .next((checkArray) => {
+      .then((checkArray) => {
          if(checks.every(check => check)){
             resolve(true);
          }else {
@@ -63,7 +63,7 @@ let insertIntoAttendence = (eventKey, user_ID) => {
       var query2 = "INSERT INTO Attendance (user_ID,event_ID) "
                + "VALUES (?, ?)";
       d.query(query2, [row["user_ID"], row["event_ID"]])
-      .next(() => { resolve() })
+      .then(() => { resolve() })
       .catch(() => { reject(error) });
    })
 };
@@ -89,7 +89,7 @@ let withinTime = function(startTime, endTime) {
 let isPolyStudent = (id) => {
    return new Promise((resolve, reject) => {
       userExists(id)
-      .next((pass) => {
+      .then((pass) => {
          if (!pass || id < 0 || id > POLYLIMIT) {
             resolve(false);
          } else{
@@ -106,7 +106,7 @@ let userExists = (id) => {
       }
       let query1 = "SELECT user_ID FROM Users WHERE user_ID = ?";
       d.query(query1, [id])
-      .next((rows) => {
+      .then((rows) => {
          if (rows.length > 0) {
             resolve(true);
          }else {
