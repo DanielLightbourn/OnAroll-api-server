@@ -49,7 +49,7 @@ exports.addUser = function(req, res) {
    var sData = [user_ID, FirstName, LastName, Email, UserName];
 
    d.query(query1, sData)
-   .next(rows => {
+   .then(rows => {
       res.json({status: 200, message: "UserID: " + user_ID + " added successfully."});
    })
    .catch(() => {res.json({status: 203, message: "Failed to add user"})});
@@ -67,7 +67,7 @@ exports.getUser = function(req, res) {
    }
    var data = [req.body.user_ID];
    d.query(query1, data)
-   .next(rows => {
+   .then(rows => {
       if (rows.length < 1){
          res.json({status: 201, message:"No users exist"});
       }else{
@@ -86,7 +86,7 @@ exports.addAttendance = (req, res) => {
       return;
    }
    t.getEventInfo(req.body.eventKey)
-   .next((rows) => {
+   .then((rows) => {
       // Adds user_ID for dependency checks
       rows = rows.map(row => {
          row["user_ID"] = req.body.user_ID;
@@ -94,7 +94,7 @@ exports.addAttendance = (req, res) => {
       });
       return Promise.all(rows.map(row => t.handleRow(row)));
    })
-   .next((eventChecks) => {
+   .then((eventChecks) => {
       let entries = 0;
       eventChecks.forEach((e) => {if (e) {entries++;}});
       res.json({status: 200, message: "Added " + entries + " entries to "
