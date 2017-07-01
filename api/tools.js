@@ -15,8 +15,7 @@ exports.getEventInfo = (eventKey) => {
                  + "FROM Events e, EventTypes et "
                  + "WHERE e.type_ID = et.type_ID AND e.eventKey = ?";
 
-      d.query(query1, [eventKey])
-      .then((rows) => {
+      d.query(query1, [eventKey], (error, rows) => {
          console.log("Rows inside getEventInfo", rows);
          if (rows.length < 1) {
             //res.json({status: 100, message: "No event(s) exists with that eventKey"});
@@ -25,7 +24,6 @@ exports.getEventInfo = (eventKey) => {
             resolve(rows);
          }
       })
-      .catch ((error) => { reject(new Error("No events exist with that key"))});
    });
 };
 
@@ -64,9 +62,10 @@ let insertIntoAttendence = (eventKey, user_ID) => {
    return new Promise((resolve, reject) => {
       var query2 = "INSERT INTO Attendance (user_ID,event_ID) "
                + "VALUES (?, ?)";
-      d.query(query2, [row["user_ID"], row["event_ID"]])
-      .then(() => { resolve() })
-      .catch((error) => { reject(error) });
+      d.query(query2, [row["user_ID"], row["event_ID"]], (error, rows) => {
+         if (error) {reject(new Error("Problem"))}
+         resolve()
+      })
    })
 };
 
@@ -107,25 +106,28 @@ let userExists = (id) => {
          resolve(false);
       }
       let query1 = "SELECT user_ID FROM Users WHERE user_ID = ?";
-      d.query(query1, [id])
-      .then((rows) => {
+      d.query(query1, [id], (error, rows) => {
          if (rows.length > 0) {
             resolve(true);
          }else {
             resolve(false);
          }
-      });
+      })
    });
 };
 
 
 // Update as more information is required
 exports.getEventInfo = (eventKey) => {
-   let query1 = "SELECT e.event_ID,e.eventKey,e.allowDup,e.timeStart,"
-                      + "e.timeEnd,et.name AS eventType,et.timeDependent,"
-                      + "et.polyOnly "
-              + "FROM Events e, EventTypes et "
-              + "WHERE e.type_ID = et.type_ID AND e.eventKey = ?";
+   return new Promise((resolve, reject) => {
+      let query1 = "SELECT e.event_ID,e.eventKey,e.allowDup,e.timeStart,"
+                         + "e.timeEnd,et.name AS eventType,et.timeDependent,"
+                         + "et.polyOnly "
+                 + "FROM Events e, EventTypes et "
+                 + "WHERE e.type_ID = et.type_ID AND e.eventKey = ?";
 
-   return d.query(query1, [eventKey]);
+      d.query(query1, [eventKey], (error, rows) => {
+         resolve(rows);
+      });
+   })
 }

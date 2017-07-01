@@ -48,11 +48,11 @@ exports.addUser = function(req, res) {
 
    var sData = [user_ID, FirstName, LastName, Email, UserName];
 
-   d.query(query1, sData)
-   .then(rows => {
-      res.json({status: 200, message: "UserID: " + user_ID + " added successfully."});
-   })
-   .catch(() => {res.json({status: 203, message: "Failed to add user"})});
+   d.query(query1, sData, (error, rows) => {
+      if (error) {res.json({status: 203, message: "Failed to add user"})} else{
+         res.json({status: 200, message: "UserID: " + user_ID + " added successfully."});
+      }
+   });
 };
 
 // Pulls a user ID from the database
@@ -66,8 +66,7 @@ exports.getUser = function(req, res) {
       return;
    }
    var data = [req.body.user_ID];
-   d.query(query1, data)
-   .then(rows => {
+   d.query(query1, data, (error, rows) => {
       if (rows.length < 1){
          res.json({status: 201, message:"No users exist"});
       }else{
