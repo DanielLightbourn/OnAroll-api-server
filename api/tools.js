@@ -23,7 +23,8 @@ exports.getEventInfo = (eventKey) => {
          }else {
             resolve(rows);
          }
-      });
+      })
+      .catch ((error) => { reject(new Error("No events exist with that key"))});
    });
 };
 

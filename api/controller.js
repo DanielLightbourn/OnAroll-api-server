@@ -87,6 +87,7 @@ exports.addAttendance = (req, res) => {
    }
    t.getEventInfo(req.body.eventKey)
    .then((rows) => {
+      console.log(rows);
       // Adds user_ID for dependency checks
       rows = rows.map(row => {
          row["user_ID"] = req.body.user_ID;
@@ -97,7 +98,7 @@ exports.addAttendance = (req, res) => {
    .then((eventChecks) => {
       let entries = 0;
       eventChecks.forEach((e) => {if (e) {entries++;}});
-      res.json({status: 200, message: "Added " + entries + " entries to "
+      res.json({status: 200, stuff: eventChecks, message: "Added " + entries + " entries to "
                                     + "attendance table"});
    })
    .catch((error) => {
