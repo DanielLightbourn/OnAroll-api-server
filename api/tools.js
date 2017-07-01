@@ -15,7 +15,7 @@ exports.getEventInfo = (eventKey) => {
                  + "FROM Events e, EventTypes et "
                  + "WHERE e.type_ID = et.type_ID AND e.eventKey = ?";
 
-      return d.query(query1, [eventKey])
+      d.query(query1, [eventKey])
       .then((rows) => {
          if (rows.length < 1) {
             //res.json({status: 100, message: "No event(s) exists with that eventKey"});
@@ -64,7 +64,7 @@ let insertIntoAttendence = (eventKey, user_ID) => {
                + "VALUES (?, ?)";
       d.query(query2, [row["user_ID"], row["event_ID"]])
       .then(() => { resolve() })
-      .catch(() => { reject(error) });
+      .catch((error) => { reject(error) });
    })
 };
 
