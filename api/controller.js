@@ -87,6 +87,7 @@ exports.addAttendance = (req, res) => {
    }
    t.getEventInfo(req.body.eventKey)
    .then((rows) => {
+      console.log(rows);
       // Adds user_ID for dependency checks
       rows = rows.map(row => {
          row["user_ID"] = req.body.user_ID;
