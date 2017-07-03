@@ -32,10 +32,10 @@ exports.getEventInfo = (eventKey) => {
 exports.handleEventRow = (row) => {
    return new Promise((resolve, reject) => {
       checkEventDependencies(row)
-      .then(() => {return insertIntoAttendence(row["eventKey"], row["user_ID"])})
+      .then(() => {return insertIntoAttendence(row["user_ID"], row["event_ID"])})
       .then(() => {resolve(true)})
       .catch((error) => {
-         console.log("Error durring handleEventRow:", error.message);
+         console.log("Error durring handleEventRow:", error.message, error);
          resolve(false);
       });
    });
@@ -63,7 +63,7 @@ let checkEventDependencies = (row) => {
 };
 
 
-let insertIntoAttendence = (eventKey, user_ID) => {
+let insertIntoAttendence = (user_ID, event_ID) => {
    return new Promise((resolve, reject) => {
       var query2 = "INSERT INTO Attendance (user_ID,event_ID) "
                  + "VALUES (?, ?)";
