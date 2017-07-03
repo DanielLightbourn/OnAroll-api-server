@@ -15,24 +15,14 @@ var pool = mysql.createPool({
 // sData: sanitized array of data for query       Ex: ["Users"]
 // response: function that will act on the response
 function handleDatabase(query, sData, callback) {
-   pool.getConnection((error, connection) => {
+   pool.query(query, sData, function(error, rows){
       if (error) {
-         callback(new Error("Failed to get connection from pool"), "");
-         console.log("failed to get connection");
+         callback(new Error("Failed to query properly"));
+         console.log("failed to query");
       }
-         connection.query(query, sData, function(error, rows){
-         if (error) {
-            callback(new Error("Failed to query properly"));
-            console.log("failed to query");
-         }
-         connection.release();
-         console.log("Connection released");
-         callback("", rows);
-         console.log("rows:", rows);
-      });
-         connection.on('error', function (error){
-         callback(new Error("Connection Error"), "");
-      });
+      console.log("Connection released");
+      console.log("rows:", rows);
+      callback("", rows);
    });
 }
 

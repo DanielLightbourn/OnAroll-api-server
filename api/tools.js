@@ -8,6 +8,7 @@ let POLYLIMIT = 9999;
 // Returns an event with relavent information
 // Update as more information is required
 exports.getEventInfo = (eventKey) => {
+   console.log("getEventInfo was passed:", eventKey);
    return new Promise((resolve, reject) => {
       let query1 = "SELECT e.event_ID,e.eventKey,e.allowDup,e.timeStart,"
                          + "e.timeEnd,et.name AS eventType,et.timeDependent,"
@@ -23,23 +24,27 @@ exports.getEventInfo = (eventKey) => {
          }else {
             resolve(rows);
          }
-      })
+      });
    });
 };
 
 
-exports.handleRow = (row) => {
+exports.handleEventRow = (row) => {
    return new Promise((resolve, reject) => {
-      checkDependencies(row)
-      .then(insertIntoAttendence(row["eventKey"], row["user_ID"]))
+      checkEventDependencies(row)
+      .then(() => {return insertIntoAttendence(row["eventKey"], row["user_ID"])})
       .then(() => {resolve(true)})
-      .catch(() => {resolve(false)});
+      .catch((error) => {
+         console.log("Error durring handleEventRow:", error.message);
+         resolve(false);
+      });
    });
 };
 
 
-let checkDependencies = (row) => {
+let checkEventDependencies = (row) => {
    return new Promise((resolve, reject) => {
+      console.log("Check Dependency Row", row);
       let checks = [true];
       // Add dependency checks here
       if (row["timeDependent"]) {
@@ -61,10 +66,10 @@ let checkDependencies = (row) => {
 let insertIntoAttendence = (eventKey, user_ID) => {
    return new Promise((resolve, reject) => {
       var query2 = "INSERT INTO Attendance (user_ID,event_ID) "
-               + "VALUES (?, ?)";
-      d.query(query2, [row["user_ID"], row["event_ID"]], (error, rows) => {
+                 + "VALUES (?, ?)";
+      d.query(query2, [user_ID, event_ID], (error, rows) => {
          if (error) {reject(new Error("Problem"))}
-         resolve()
+         resolve(true);
       })
    })
 };

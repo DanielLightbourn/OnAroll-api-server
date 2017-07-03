@@ -92,13 +92,13 @@ exports.addAttendance = (req, res) => {
          row["user_ID"] = req.body.user_ID;
          return row;
       });
-      return Promise.all(rows.map(row => t.handleRow(row)));
+      return Promise.all(rows.map(row => t.handleEventRow(row)));
    })
    .then((eventChecks) => {
       let entries = 0;
       eventChecks.forEach((e) => {if (e) {entries++;}});
-      res.json({status: 200, stuff: eventChecks, message: "Added " + entries + " entries to "
-                                    + "attendance table"});
+      res.json({status: 200, stuff: eventChecks, message: "Added " + entries
+                                    + " entries to attendance table"});
    })
    .catch((error) => {
       res.json({status: 200, message: "No attendance entry added!"})
