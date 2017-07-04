@@ -105,6 +105,7 @@ exports.addAttendance = (req, res) => {
       }
    })
    .catch((error) => {
+      console.log(error);
       res.json({status: 200, message: "No attendance entry added!"});
    })
 };
