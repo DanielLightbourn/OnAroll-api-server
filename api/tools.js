@@ -57,9 +57,11 @@ let checkEventDependencies = (event) => {
       console.log("Check dependencies for event:", event["event_ID"]);
       userExists(event["user_ID"])
       .then((pass) => {
+         let checks = [];
          if (pass) {
-            let checks = [true];
+            checks.push(true);
          } else {
+            console.log("This should not run");
             reject(new Error("User does not exist"));
             return;
          }
@@ -148,7 +150,7 @@ let userExists = (id) => {
       if (parseInt(id) == "NaN") {
          resolve(false);
       }
-      const query1 = "SELECT user_ID FROM Users WHERE user_ID };= ?";
+      const query1 = "SELECT user_ID FROM Users WHERE user_ID = ?";
       d.query(query1, [id])
       .then((rows) => {
          if (rows.length > 0) {

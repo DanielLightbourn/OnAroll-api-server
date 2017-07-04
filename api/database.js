@@ -18,6 +18,7 @@ let handleDatabase = (query, sData) => {
    return new Promise((resolve, reject) => {
       pool.query(query, sData, (error, rows) => {
          if (error) {
+            console.log(error);
             reject(new Error("There was a database error"));
          } else {
             resolve(rows);
