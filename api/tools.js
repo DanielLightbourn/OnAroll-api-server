@@ -73,7 +73,7 @@ let insertIntoAttendence = (user_ID, event_ID) => {
                  + "VALUES (?, ?)";
       d.query(query2, [user_ID, event_ID], (error, rows) => {
          if (error) {
-            let err = new new Error("ErrProblemor adding attendance entry! "
+            let err = new Error("ErrProblemor adding attendance entry! "
                                   + "Most likly caused by invalid user_ID");
             err.id = 1;
             reject(err);
@@ -86,15 +86,24 @@ let insertIntoAttendence = (user_ID, event_ID) => {
 
 
 let withinTime = function(startTime, endTime) {
+   var sTime = startTime;
+   var eTime = endTime;
    return new Promise((resolve, reject) => {
       let today = new Date();
-      let startTime = startTime.split(":");
-      let endTime = endTime.split(":");
-      let ans = 0;
-      if (today.getHours() >= startTime[0] &&
-          today.getHours() <= endTime[0] &&
-          today.getMinutes() >= startTime[1] &&
-          today.getMinutes() <= endTime[1]) {
+      let startTime = sTime.split(":");
+      let endTime = eTime.split(":");
+
+      let startDate = new Date(today.getTime());
+      startDate.setHours(startTime[0]);
+      startDate.setMinutes(startTime[1]);
+      startDate.setSeconds(startTime[2]);
+
+      let endDate = new Date(today.getTime());
+      endDate.setHours(endTime[0]);
+      endDate.setMinutes(endTime[1]);
+      endDate.setSeconds(endTime[2]);
+
+      if (startDate < today && endDate > today) {
          resolve(true);
       }else{
          resolve(false);
