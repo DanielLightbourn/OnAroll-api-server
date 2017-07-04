@@ -54,10 +54,9 @@ let checkEventDependencies = (row) => {
       if (row["timeDependent"]) {
          checks.push(withinTime(row["timeStart"], row["timeEnd"]))}
       if (row["polyOnly"]) {checks.push(isPolyStudent(row["user_ID"]))}
-
+      console.log(checks);
       Promise.all(checks)
       .then((checkArray) => {
-         console.log("ChecksAttay for row:", row['event_ID'], " : ", checkArray);
          if(checkArray.every(check => check)){
             resolve(true);
          }else {
@@ -87,8 +86,7 @@ let insertIntoAttendence = (user_ID, event_ID) => {
 
 
 let withinTime = function(startTime, endTime) {
-   var sTime = startTime;
-   var eTime = endTime;
+   var sTime = startTime, eTime = endTime;
    return new Promise((resolve, reject) => {
       let today = new Date();
       let startTime = sTime.split(":");
@@ -122,8 +120,10 @@ let isPolyStudent = (id) => {
       userExists(id)
       .then((pass) => {
          if (!pass || id < 0 || id > POLYLIMIT) {
+            console.log("User",id,"is not a polystudent");
             resolve(false);
          } else{
+            console.log("User",id,"is a polystudent");
             resolve(true);
          }
       });

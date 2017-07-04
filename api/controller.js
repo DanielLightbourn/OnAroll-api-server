@@ -97,10 +97,14 @@ exports.addAttendance = (req, res) => {
    .then((eventChecks) => {
       let entries = 0;
       eventChecks.forEach((e) => {if (e) {entries++;}});
-      res.json({status: 200, stuff: eventChecks, message: "Added " + entries
+      if(entries > 0) {
+         res.json({status: 200, message: "Added " + entries
                                     + " entries to attendance table"});
+      } else {
+         res.json({status: 203, message: "No attendance entry added!"});
+      }
    })
    .catch((error) => {
-      res.json({status: 200, message: "No attendance entry added!"})
+      res.json({status: 200, message: "No attendance entry added!"});
    })
 };
