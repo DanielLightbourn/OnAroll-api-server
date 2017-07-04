@@ -57,7 +57,8 @@ let checkEventDependencies = (row) => {
 
       Promise.all(checks)
       .then((checkArray) => {
-         if(checks.every(check => check)){
+         console.log("ChecksAttay for row:", row['event_ID'], " : ", checkArray);
+         if(checkArray.every(check => check)){
             resolve(true);
          }else {
             reject(new Error("Failed check"));
@@ -102,7 +103,12 @@ let withinTime = function(startTime, endTime) {
       endDate.setHours(endTime[0]);
       endDate.setMinutes(endTime[1]);
       endDate.setSeconds(endTime[2]);
-
+      
+      console.log("StartDate:", startDate);
+      console.log("endDate:", endDate);
+      console.log("today:", today);
+      console.log("startDate is less than now:", startDate < today);
+      console.log("endDate is greater than now:", endDate > today);
       if (startDate < today && endDate > today) {
          resolve(true);
       }else{
