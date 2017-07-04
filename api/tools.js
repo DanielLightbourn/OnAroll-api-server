@@ -61,7 +61,6 @@ let checkEventDependencies = (event) => {
          if (pass) {
             checks.push(true);
          } else {
-            console.log("This should not run");
             reject(new Error("User does not exist"));
             return;
          }
@@ -94,10 +93,7 @@ let insertIntoAttendence = (user_ID, event_ID) => {
          resolve(true);
       })
       .catch((error) => {
-         let err = new Error("Problem adding attendance entry! "
-                           + "Most likly caused by invalid user_ID");
-         err.id = 1;
-         reject(err);
+         reject(error);
       });
    })
 };
