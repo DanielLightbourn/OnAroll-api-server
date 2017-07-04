@@ -16,7 +16,7 @@ var pool = mysql.createPool({
 // response: function that will act on the response
 let handleDatabase = (query, sData) => {
    return new Promise((resolve, reject) => {
-      pool.query(query, sData, (error, row) => {
+      pool.query(query, sData, (error, rows) => {
          if (error) {
             reject(new Error("There was a database error"));
          } else {

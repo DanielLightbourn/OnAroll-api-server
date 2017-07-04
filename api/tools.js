@@ -35,13 +35,13 @@ exports.handleEvent = (event) => {
       checkEventDependencies(event)
       .then((passedDependencyCheck) => {
          if (passedDependencyCheck){
-            console.log("Event:", event_ID, " Passed dependency check");
+            console.log("Event:", event["event_ID"], " Passed dependency check");
          }
       })
       .then(() => {return insertIntoAttendence(event["user_ID"], event["event_ID"])})
       .then(() => {resolve(true)})
       .catch((error) => {
-         console.log("Error durring handleEvent function:", error.message);
+         console.log("Error durring handleEvent function:", error.message, error);
          if (error.id === 1) {
             reject(new Error("User does not exist"));
          } else {
@@ -55,22 +55,30 @@ exports.handleEvent = (event) => {
 let checkEventDependencies = (event) => {
    return new Promise((resolve, reject) => {
       console.log("Check dependencies for event:", event["event_ID"]);
-      let checks = [true];
-      // Add dependency checks here
-      if (event["timeDependent"]) {
-         checks.push(withinTime(event["timeStart"], event["timeEnd"]))}
-      if (event["polyOnly"]) {checks.push(isPolyStudent(event["user_ID"]))}
-      console.log("Checks for event_ID:", event[event_ID], " : ",checks);
-      Promise.all(checks)
-      .then((checkArray) => {
-         console.log("Dependency check results for event_ID:", event["event_ID"],
-                     checkArray);
-         if(checkArray.every(check => check)){
-            resolve(true);
-         }else {
-            reject(new Error("Event: ", event["event_ID"], " Failed dependency check"));
+      userExists(event["user_ID"])
+      .then((pass) => {
+         if (pass) {
+            let checks = [true];
+         } else {
+            reject(new Error("User does not exist"));
+            return;
          }
-      })
+         // Add dependency checks here
+         if (event["timeDependent"]) {
+            checks.push(withinTime(event["timeStart"], event["timeEnd"]))}
+         if (event["polyOnly"]) {checks.push(isPolyStudent(event["user_ID"]))}
+         console.log("Checks for event_ID:", event["event_ID"], " : ",checks);
+         Promise.all(checks)
+         .then((checkArray) => {
+            console.log("Dependency check results for event_ID:", event["event_ID"],
+                     checkArray);
+            if(checkArray.every(check => check)){
+               resolve(true);
+            }else {
+               reject(new Error("Event: ", event["event_ID"], " Failed dependency check"));
+            }
+         })
+      });
    });
 };
 
@@ -87,7 +95,7 @@ let insertIntoAttendence = (user_ID, event_ID) => {
          let err = new Error("Problem adding attendance entry! "
                            + "Most likly caused by invalid user_ID");
          err.id = 1;
-         reject(error);
+         reject(err);
       });
    })
 };
@@ -125,16 +133,13 @@ let withinTime = function(startTime, endTime) {
 
 let isPolyStudent = (id) => {
    return new Promise((resolve, reject) => {
-      userExists(id)
-      .then((pass) => {
-         if (!pass || id < 0 || id > POLYLIMIT) {
-            console.log("User",id,"is not a polystudent");
-            resolve(false);
-         } else{
-            console.log("User",id,"is a polystudent");
-            resolve(true);
-         }
-      });
+      if ( id < 0 || id > POLYLIMIT) {
+         console.log("User",id,"is not a polystudent");
+         resolve(false);
+      } else{
+         console.log("User",id,"is a polystudent");
+         resolve(true);
+      }
    });
 };
 

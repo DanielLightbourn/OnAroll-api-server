@@ -90,7 +90,7 @@ exports.addAttendance = (req, res) => {
       // Adds user_ID for dependency checks
       events = events.map(event => {
          event["user_ID"] = req.body.user_ID;
-         return row;
+         return event;
       });
       return Promise.all(events.map(event => t.handleEvent(event)));
    })
