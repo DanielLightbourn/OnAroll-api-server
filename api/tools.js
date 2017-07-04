@@ -36,7 +36,11 @@ exports.handleEventRow = (row) => {
       .then(() => {resolve(true)})
       .catch((error) => {
          console.log("Error durring handleEventRow:", error.message, error);
-         resolve(false);
+         if (error.id === 1) {
+            reject(new Error("User does not exist"));
+         } else {
+            resolve(false);
+         }
       });
    });
 };
@@ -68,7 +72,13 @@ let insertIntoAttendence = (user_ID, event_ID) => {
       var query2 = "INSERT INTO Attendance (user_ID,event_ID) "
                  + "VALUES (?, ?)";
       d.query(query2, [user_ID, event_ID], (error, rows) => {
-         if (error) {reject(new Error("Problem"))}
+         if (error) {
+            let err = new new Error("ErrProblemor adding attendance entry! "
+                                  + "Most likly caused by invalid user_ID");
+            err.id = 1;
+            reject(err);
+
+         }
          resolve(true);
       })
    })
