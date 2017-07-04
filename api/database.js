@@ -14,6 +14,19 @@ var pool = mysql.createPool({
 // query: string containing SQL formated query    Ex: "SELECT * FROM ?"
 // sData: sanitized array of data for query       Ex: ["Users"]
 // response: function that will act on the response
+let handleDatabase = (query, sData) => {
+   return new Promise((resolve, reject) => {
+      pool.query(query, sData, (error, row) => {
+         if (error) {
+            reject(new Error("There was a database error"));
+         } else {
+            resolve(rows);
+         }
+      });
+   });
+};
+
+/*
 function handleDatabase(query, sData, callback) {
    pool.query(query, sData, function(error, rows){
       if (error) {
@@ -25,6 +38,7 @@ function handleDatabase(query, sData, callback) {
       callback("", rows);
    });
 }
+*/
 
 
 //handleDatabase("SHOW tables", function (res){

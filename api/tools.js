@@ -10,17 +10,18 @@ let POLYLIMIT = 9999;
 exports.getEventInfo = (eventKey) => {
    console.log("getEventInfo was passed:", eventKey);
    return new Promise((resolve, reject) => {
-      let query1 = "SELECT e.event_ID,e.eventKey,e.allowDup,e.timeStart,"
+      const query1 = "SELECT e.event_ID,e.eventKey,e.allowDup,e.timeStart,"
                          + "e.timeEnd,et.name AS eventType,et.timeDependent,"
                          + "et.polyOnly "
                  + "FROM Events e, EventTypes et "
                  + "WHERE e.type_ID = et.type_ID AND e.eventKey = ?";
 
-      d.query(query1, [eventKey], (error, rows) => {
+      d.query(query1, [eventKey])
+      .then((rows) => {
          console.log("Rows inside getEventInfo", rows);
          if (rows.length < 1) {
             //res.json({status: 100, message: "No event(s) exists with that eventKey"});
-            reject(new Error("New events exist with that key"));
+            reject(new Error("No events exist with that eventKey"));
          }else {
             resolve(rows);
          }
@@ -29,13 +30,18 @@ exports.getEventInfo = (eventKey) => {
 };
 
 
-exports.handleEventRow = (row) => {
+exports.handleEvent = (event) => {
    return new Promise((resolve, reject) => {
-      checkEventDependencies(row)
-      .then(() => {return insertIntoAttendence(row["user_ID"], row["event_ID"])})
+      checkEventDependencies(event)
+      .then((passedDependencyCheck) => {
+         if (passedDependencyCheck){
+            console.log("Event:", event_ID, " Passed dependency check");
+         }
+      })
+      .then(() => {return insertIntoAttendence(event["user_ID"], event["event_ID"])})
       .then(() => {resolve(true)})
       .catch((error) => {
-         console.log("Error durring handleEventRow:", error.message, error);
+         console.log("Error durring handleEvent function:", error.message);
          if (error.id === 1) {
             reject(new Error("User does not exist"));
          } else {
@@ -46,21 +52,23 @@ exports.handleEventRow = (row) => {
 };
 
 
-let checkEventDependencies = (row) => {
+let checkEventDependencies = (event) => {
    return new Promise((resolve, reject) => {
-      console.log("Check Dependency Row", row);
+      console.log("Check dependencies for event:", event["event_ID"]);
       let checks = [true];
       // Add dependency checks here
-      if (row["timeDependent"]) {
-         checks.push(withinTime(row["timeStart"], row["timeEnd"]))}
-      if (row["polyOnly"]) {checks.push(isPolyStudent(row["user_ID"]))}
-      console.log(checks);
+      if (event["timeDependent"]) {
+         checks.push(withinTime(event["timeStart"], event["timeEnd"]))}
+      if (event["polyOnly"]) {checks.push(isPolyStudent(event["user_ID"]))}
+      console.log("Checks for event_ID:", event[event_ID], " : ",checks);
       Promise.all(checks)
       .then((checkArray) => {
+         console.log("Dependency check results for event_ID:", event["event_ID"],
+                     checkArray);
          if(checkArray.every(check => check)){
             resolve(true);
          }else {
-            reject(new Error("Failed check"));
+            reject(new Error("Event: ", event["event_ID"], " Failed dependency check"));
          }
       })
    });
@@ -69,18 +77,18 @@ let checkEventDependencies = (row) => {
 
 let insertIntoAttendence = (user_ID, event_ID) => {
    return new Promise((resolve, reject) => {
-      var query2 = "INSERT INTO Attendance (user_ID,event_ID) "
+      const query2 = "INSERT INTO Attendance (user_ID,event_ID) "
                  + "VALUES (?, ?)";
-      d.query(query2, [user_ID, event_ID], (error, rows) => {
-         if (error) {
-            let err = new Error("ErrProblemor adding attendance entry! "
-                                  + "Most likly caused by invalid user_ID");
-            err.id = 1;
-            reject(err);
-
-         }
+      d.query(query2, [user_ID, event_ID])
+      .then((events) => {
          resolve(true);
       })
+      .catch((error) => {
+         let err = new Error("Problem adding attendance entry! "
+                           + "Most likly caused by invalid user_ID");
+         err.id = 1;
+         reject(error);
+      });
    })
 };
 
@@ -101,7 +109,7 @@ let withinTime = function(startTime, endTime) {
       endDate.setHours(endTime[0]);
       endDate.setMinutes(endTime[1]);
       endDate.setSeconds(endTime[2]);
-      
+
       console.log("StartDate:", startDate);
       console.log("endDate:", endDate);
       console.log("today:", today);
@@ -135,29 +143,14 @@ let userExists = (id) => {
       if (parseInt(id) == "NaN") {
          resolve(false);
       }
-      let query1 = "SELECT user_ID FROM Users WHERE user_ID = ?";
-      d.query(query1, [id], (error, rows) => {
+      const query1 = "SELECT user_ID FROM Users WHERE user_ID };= ?";
+      d.query(query1, [id])
+      .then((rows) => {
          if (rows.length > 0) {
             resolve(true);
          }else {
             resolve(false);
          }
-      })
+      });
    });
 };
-
-
-// Update as more information is required
-exports.getEventInfo = (eventKey) => {
-   return new Promise((resolve, reject) => {
-      let query1 = "SELECT e.event_ID,e.eventKey,e.allowDup,e.timeStart,"
-                         + "e.timeEnd,et.name AS eventType,et.timeDependent,"
-                         + "et.polyOnly "
-                 + "FROM Events e, EventTypes et "
-                 + "WHERE e.type_ID = et.type_ID AND e.eventKey = ?";
-
-      d.query(query1, [eventKey], (error, rows) => {
-         resolve(rows);
-      });
-   })
-}

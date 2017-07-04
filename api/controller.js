@@ -26,30 +26,27 @@ exports.getAttendance = function(req, res) {
 
 // test function to allow us to add users to the table
 exports.addUser = function(req, res) {
-   var query1 = "INSERT INTO Users VALUES (?, ?, ?, ?, ?)";
+   const query1 = "INSERT INTO Users VALUES (?, ?, ?, ?, ?)";
    if (req.body.user_ID){
-      var user_ID = req.body.user_ID;
+      let user_ID = req.body.user_ID;
    }else{
       res.json({status: 100, message: "UserID is necessary for this function."});
       return;
    }
-   if (req.body.FirstName){
-      var FirstName = req.body.FirstName;
-   }else{var FirstName = "";}
-   if (req.body.LastName){
-      var LastName = req.body.LastName;
-   }else{var LastName = "";}
-   if (req.body.Email){
-      var Email = req.body.Email;
-   }else{var Email = "";}
-   if (req.body.UserName){
-      var UserName = req.body.UserName;
-   }else{var UserName = "";}
 
-   var sData = [user_ID, FirstName, LastName, Email, UserName];
+   let firstName = req.body.firstName || "";
+   let lastName = req.body.lastName || "";
+   let email = req.body.email || "";
+   let userName = req.body.userName || "";
 
-   d.query(query1, sData, (error, rows) => {
-      if (error) {res.json({status: 203, message: "Failed to add user"})} else{
+
+   var sData = [user_ID, firstName, lastName, email, userName];
+
+   d.query(query1, sData)
+   .then((rows) => {
+      if (error) {
+         res.json({status: 203, message: "Failed to add user"});
+      } else{
          res.json({status: 200, message: "UserID: " + user_ID + " added successfully."});
       }
    });
@@ -57,7 +54,7 @@ exports.addUser = function(req, res) {
 
 // Pulls a user ID from the database
 exports.getUser = function(req, res) {
-   var query1 = "SELECT user_ID,firstName,lastName,email "
+   const query1 = "SELECT user_ID,firstName,lastName,email "
               + "FROM Users "
               + "WHERE user_ID=?";
    if (parseInt(req.body.user_ID) == "NaN"){
@@ -65,8 +62,9 @@ exports.getUser = function(req, res) {
                                     + "Error: user_ID must be a number"});
       return;
    }
-   var data = [req.body.user_ID];
-   d.query(query1, data, (error, rows) => {
+   const data = [req.body.user_ID];
+   d.query(query1, data)
+   .then((rows) => {
       if (rows.length < 1){
          res.json({status: 201, message:"No users exist"});
       }else{
@@ -79,20 +77,22 @@ exports.getUser = function(req, res) {
 // POST message contains user_ID,eventKey,(firstName,lastName)
 
 exports.addAttendance = (req, res) => {
+   // Checks that the user_ID is a number
    if (isNaN(req.body.user_ID)) {
       res.json({status: 100, message: "user_ID is not valid! "
                                     + "Error: user_ID must be a number"});
       return;
    }
+
    t.getEventInfo(req.body.eventKey)
-   .then((rows) => {
-      console.log("Rows inside of then", rows);
+   .then((events) => {
+      console.log("Events inside of then", events);
       // Adds user_ID for dependency checks
-      rows = rows.map(row => {
-         row["user_ID"] = req.body.user_ID;
+      events = events.map(event => {
+         event["user_ID"] = req.body.user_ID;
          return row;
       });
-      return Promise.all(rows.map(row => t.handleEventRow(row)));
+      return Promise.all(events.map(event => t.handleEvent(event)));
    })
    .then((eventChecks) => {
       let entries = 0;
