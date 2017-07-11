@@ -4,7 +4,11 @@
 var d = require('./database');
 var mysql = require('mysql');
 var t = require('./tools');
+var rs = require('jsrsasign');
 
+const ALGORITHM = {'alg':'SHA256withECDSA'};
+const CURVE = "secp256r1";
+const TEST_PUB_KEY = "BBzK7u11lfwluDvMfSrZt3RC8XFH4f4zqMGqM43wqTpLXU_JsbBjgu5FsbW61FOl0v0mcajX6YD6VZIFMYkPsBI";
 
 exports.getVersion = function(req, res) {
   res.json({todo: 'implement version call'});
@@ -78,18 +82,28 @@ exports.getUser = function(req, res) {
 
 exports.addAttendance = (req, res) => {
    // Checks that the user_ID is a number
-   if (isNaN(req.body.user_ID)) {
+   if (isNaN(req.body.data.user_ID)) {
       res.json({status: 100, message: "user_ID is not valid! "
                                     + "Error: user_ID must be a number"});
       return;
    }
-
-   t.getEventInfo(req.body.eventKey)
+   
+   var signedString = JSON.stringify(req.body.data);
+   var signitureVerify = new rs.KJUR.crypto.Signature(ALGORITHM);
+   signitureVerify.init(new rs.KJUR.crypto.ECDSA({'curve': CURVE, 'pub': rs.b64utohex(TEST_PUB_KEY)}));
+   signitureVerify.updateString(signedString);
+   if(!signitureVerify.verify(rs.b64utohex(req.body.signiture))) {
+     console.log("Bad Signature");
+     res.json({status: 403, message: "Signature is not valid! " + "Error: Kiosk isn't authenticated!"});
+     return;
+   }
+   
+   t.getEventInfo(req.body.data.eventKey)
    .then((events) => {
       console.log("Events inside of then", events);
       // Adds user_ID for dependency checks
       events = events.map(event => {
-         event["user_ID"] = req.body.user_ID;
+         event["user_ID"] = req.body.data.user_ID;
          return event;
       });
       return Promise.all(events.map(event => t.handleEvent(event)));
@@ -109,3 +123,7 @@ exports.addAttendance = (req, res) => {
       res.json({status: 200, message: "No attendance entry added!"});
    })
 };
+
+exports.authenticate = (req, res) => {
+  res.json({todo: 'implement version call'});
+}

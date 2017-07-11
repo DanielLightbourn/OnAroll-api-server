@@ -30,5 +30,9 @@ module.exports = function(app) {
   // Retrieves user data
   app.route('/getUser')
     .post(controller.getUser);
+    
+  // authenticate a kiosk so that it may add attendances
+  app.route('/authenticate')
+    .post(controller.authenticate);
 
 };
