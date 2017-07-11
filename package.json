@@ -22,7 +22,8 @@
   "dependencies": {
     "body-parser": "^1.17.2",
     "express": "^4.15.3",
-    "mysql": "^2.13.0"
+    "mysql": "^2.13.0",
+    "jsrsasign": "^8.0.3"
   },
   "devDependencies": {
     "pm2": "^2.5.0"
