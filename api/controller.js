@@ -1,9 +1,8 @@
 'use strict';
 
 // import necessary modules
-var d = require('./database');
-var mysql = require('mysql');
-var t = require('./tools');
+let DB = require('./database');
+let t = require('./tools');
 
 
 exports.getVersion = function(req, res) {
@@ -42,7 +41,7 @@ exports.addUser = function(req, res) {
 
    var sData = [user_ID, firstName, lastName, email, userName];
 
-   d.query(query1, sData)
+   DB.query(query1, sData)
    .then((rows) => {
       if (error) {
          res.json({status: 203, message: "Failed to add user"});
@@ -63,12 +62,12 @@ exports.getUser = function(req, res) {
       return;
    }
    const data = [req.body.user_ID];
-   d.query(query1, data)
+   DB.query(query1, data)
    .then((rows) => {
       if (rows.length < 1){
          res.json({status: 201, message:"No users exist"});
       }else{
-         res.json({status: 200, message: "User added successfully"});
+         res.json({status: 200, message: `User found with ID: $(data[0])`});
       }
    });
 };
@@ -84,19 +83,18 @@ exports.addAttendance = (req, res) => {
       return;
    }
 
-   t.getEventInfo(req.body.eventKey)
+   DB.getEventInfo(req.body.eventKey)
    .then((events) => {
-      console.log("Events inside of then", events);
       // Adds user_ID for dependency checks
       events = events.map(event => {
          event["user_ID"] = req.body.user_ID;
          return event;
       });
-      return Promise.all(events.map(event => t.handleEvent(event)));
+      let handleEventPromiseArray = events.map(event => t.handleEvent(event));
+      return Promise.all(handleEventPromiseArray);
    })
    .then((eventChecks) => {
-      let entries = 0;
-      eventChecks.forEach((e) => {if (e) {entries++;}});
+      let entries = eventChecks.reduce((sum, x) => {if (x) {return sum++;}}, 0);
       if(entries > 0) {
          res.json({status: 200, message: "Added " + entries
                                     + " entries to attendance table"});
@@ -106,6 +104,6 @@ exports.addAttendance = (req, res) => {
    })
    .catch((error) => {
       console.log(error);
-      res.json({status: 200, message: "No attendance entry added!"});
+      res.json({status: 203, message: "No attendance entry added!"});
    })
 };
