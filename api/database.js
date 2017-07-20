@@ -88,7 +88,7 @@ exports.getEventInfo = (eventKey) => {
          }else {
             console.log("Database returned ", eventsFromDatabase.length,
                         "events with the key: ", eventKey);
-            resolve(rows);
+            resolve(eventsFromDatabase);
          }
       });
    });

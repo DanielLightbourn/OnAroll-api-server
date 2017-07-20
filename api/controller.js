@@ -94,7 +94,7 @@ exports.addAttendance = (req, res) => {
       return Promise.all(handleEventPromiseArray);
    })
    .then((eventChecks) => {
-      let entries = eventChecks.reduce((sum, x) => {if (x) {return sum++;}}, 0);
+      let entries = eventChecks.reduce((sum, x) => {if (x) {return sum+1} else {return sum}}, 0);
       if(entries > 0) {
          res.json({status: 200, message: "Added " + entries
                                     + " entries to attendance table"});

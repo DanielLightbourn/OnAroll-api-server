@@ -43,6 +43,10 @@ let checkEventDependencies = (event) => {
                reject(new Error("Event: ", event.event_ID, " Failed dependency check(s)"));
             }
          })
+      })
+      .catch(error => {
+         console.log(error);
+         reject(new Error("Event Failed dependency checks"));
       });
    });
 };
