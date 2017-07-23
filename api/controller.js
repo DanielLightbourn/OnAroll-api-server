@@ -1,10 +1,9 @@
 'use strict';
 
 // import necessary modules
-var d = require('./database');
-var mysql = require('mysql');
-var t = require('./tools');
 var rs = require('jsrsasign');
+let DB = require('./database');
+let t = require('./tools');
 
 const ALGORITHM = {'alg':'SHA256withECDSA'};
 const CURVE = "secp256r1";
@@ -46,7 +45,7 @@ exports.addUser = function(req, res) {
 
    var sData = [user_ID, firstName, lastName, email, userName];
 
-   d.query(query1, sData)
+   DB.query(query1, sData)
    .then((rows) => {
       if (error) {
          res.json({status: 203, message: "Failed to add user"});
@@ -67,12 +66,12 @@ exports.getUser = function(req, res) {
       return;
    }
    const data = [req.body.user_ID];
-   d.query(query1, data)
+   DB.query(query1, data)
    .then((rows) => {
       if (rows.length < 1){
          res.json({status: 201, message:"No users exist"});
       }else{
-         res.json({status: 200, message: "User added successfully"});
+         res.json({status: 200, message: `User found with ID: $(data[0])`});
       }
    });
 };
@@ -87,7 +86,6 @@ exports.addAttendance = (req, res) => {
                                     + "Error: user_ID must be a number"});
       return;
    }
-   
    var signedString = JSON.stringify(req.body.data);
    var signitureVerify = new rs.KJUR.crypto.Signature(ALGORITHM);
    signitureVerify.init(new rs.KJUR.crypto.ECDSA({'curve': CURVE, 'pub': rs.b64utohex(TEST_PUB_KEY)}));
@@ -97,20 +95,19 @@ exports.addAttendance = (req, res) => {
      res.json({status: 403, message: "Signature is not valid! " + "Error: Kiosk isn't authenticated!"});
      return;
    }
-   
-   t.getEventInfo(req.body.data.eventKey)
+
+   DB.getEventInfo(req.body.data.eventKey)
    .then((events) => {
-      console.log("Events inside of then", events);
       // Adds user_ID for dependency checks
       events = events.map(event => {
          event["user_ID"] = req.body.data.user_ID;
          return event;
       });
-      return Promise.all(events.map(event => t.handleEvent(event)));
+      let handleEventPromiseArray = events.map(event => t.handleEvent(event));
+      return Promise.all(handleEventPromiseArray);
    })
    .then((eventChecks) => {
-      let entries = 0;
-      eventChecks.forEach((e) => {if (e) {entries++;}});
+      let entries = eventChecks.reduce((sum, x) => {if (x) {return sum+1} else {return sum}}, 0);
       if(entries > 0) {
          res.json({status: 200, message: "Added " + entries
                                     + " entries to attendance table"});
@@ -120,7 +117,7 @@ exports.addAttendance = (req, res) => {
    })
    .catch((error) => {
       console.log(error);
-      res.json({status: 200, message: "No attendance entry added!"});
+      res.json({status: 203, message: "No attendance entry added!"});
    })
 };
 

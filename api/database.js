@@ -14,46 +14,89 @@ var pool = mysql.createPool({
 // query: string containing SQL formated query    Ex: "SELECT * FROM ?"
 // sData: sanitized array of data for query       Ex: ["Users"]
 // response: function that will act on the response
-let handleDatabase = (query, sData) => {
+let query = (query, sData) => {
+   console.log("Running query: \n", query, "\nwith data: ", sData);
    return new Promise((resolve, reject) => {
       pool.query(query, sData, (error, rows) => {
          if (error) {
-            console.log(error);
-            reject(new Error("There was a database error"));
+            console.log("Database query error: ", error);
+            reject(new Error("Query Error"));
          } else {
+            console.log("Query completed successfully!");
             resolve(rows);
          }
       });
    });
 };
 
-/*
-function handleDatabase(query, sData, callback) {
-   pool.query(query, sData, function(error, rows){
-      if (error) {
-         callback(new Error("Failed to query properly"));
-         console.log("failed to query");
+exports.userExists = (id) => {
+   console.log("Checking if user exists with ID: ", id);
+   return new Promise((resolve, reject) => {
+      if (parseInt(id) == "NaN") {
+         console.log("User id: ", id, " is not a number!");
+         resolve(false);
       }
-      console.log("Connection released");
-      console.log("rows:", rows);
-      callback("", rows);
+      const query1 = "SELECT user_ID FROM Users WHERE user_ID = ?";
+      query(query1, [id])
+      .then((rows) => {
+         if (rows.length > 0) {
+            console.log("User found with ID: ", id);
+            resolve(true);
+         }else {
+            console.log("No user found with ID: ", id);
+            reject(new Error("No user found with ID: ", id));
+         }
+      });
    });
-}
-*/
+};
 
+exports.insertIntoAttendence = (user_ID, event_ID) => {
+   console.log("Inserting user: ", user_ID, "into event: ", event_ID);
+   return new Promise((resolve, reject) => {
+      const query2 = "INSERT INTO Attendance (user_ID,event_ID) "
+                 + "VALUES (?, ?)";
+      query(query2, [user_ID, event_ID])
+      .then((events) => {
+         console.log("User: ", user_ID,
+                     "was seccessfully added to event: ", event_ID);
+         resolve(true);
+      })
+      .catch((error) => {
+         console.log("User: ", user_ID,
+                     "failed to be added to event: ", event_ID);
+         reject(error);
+      });
+   })
+};
 
-//handleDatabase("SHOW tables", function (res){
-//   for (var i of res){
-//      console.log(i.Tables_in_OnARoll_MarkI);
-//   }
-//   console.log("\n\n\n" + res.toString());
-//});
-//setTimeout(function(){
-//   pool.end(function(){console.log("Pool has ended.");});
-//}, 1000);
+// Returns an event with relavent information
+// Update as more information is required
+exports.getEventInfo = (eventKey) => {
+   console.log("Getting event info for eventKey:", eventKey);
+   return new Promise((resolve, reject) => {
+      const query1 = "SELECT e.event_ID,e.eventKey,e.allowDup,e.timeStart,"
+                         + "e.timeEnd,et.name AS eventType,et.timeDependent,"
+                         + "et.polyOnly "
+                 + "FROM Events e, EventTypes et "
+                 + "WHERE e.type_ID = et.type_ID AND e.eventKey = ?";
+
+      query(query1, [eventKey])
+      .then((eventsFromDatabase) => {
+         if (eventsFromDatabase.length < 1) {
+            console.log("No event info was found for eventKey: ", eventKey);
+            reject(new Error("No events exist with that eventKey"));
+         }else {
+            console.log("Database returned ", eventsFromDatabase.length,
+                        "events with the key: ", eventKey);
+            resolve(eventsFromDatabase);
+         }
+      });
+   });
+};
+
 
 module.exports.pool = pool;
-module.exports.query = handleDatabase;
+module.exports.query = query;
 module.exports.close = () => {
    setTimeout(() => {
       pool.end(() => {

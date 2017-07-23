@@ -1,52 +1,18 @@
 'use strict';
 
-let d = require('./database');
+let DB = require('./database');
 
 let POLYLIMIT = 9999;
-
-
-// Returns an event with relavent information
-// Update as more information is required
-exports.getEventInfo = (eventKey) => {
-   console.log("getEventInfo was passed:", eventKey);
-   return new Promise((resolve, reject) => {
-      const query1 = "SELECT e.event_ID,e.eventKey,e.allowDup,e.timeStart,"
-                         + "e.timeEnd,et.name AS eventType,et.timeDependent,"
-                         + "et.polyOnly "
-                 + "FROM Events e, EventTypes et "
-                 + "WHERE e.type_ID = et.type_ID AND e.eventKey = ?";
-
-      d.query(query1, [eventKey])
-      .then((rows) => {
-         console.log("Rows inside getEventInfo", rows);
-         if (rows.length < 1) {
-            //res.json({status: 100, message: "No event(s) exists with that eventKey"});
-            reject(new Error("No events exist with that eventKey"));
-         }else {
-            resolve(rows);
-         }
-      });
-   });
-};
 
 
 exports.handleEvent = (event) => {
    return new Promise((resolve, reject) => {
       checkEventDependencies(event)
-      .then((passedDependencyCheck) => {
-         if (passedDependencyCheck){
-            console.log("Event:", event["event_ID"], " Passed dependency check");
-         }
-      })
-      .then(() => {return insertIntoAttendence(event["user_ID"], event["event_ID"])})
+      .then(() => {return DB.insertIntoAttendence(event["user_ID"], event["event_ID"])})
       .then(() => {resolve(true)})
       .catch((error) => {
-         console.log("Error durring handleEvent function:", error.message, error);
-         if (error.id === 1) {
-            reject(new Error("User does not exist"));
-         } else {
-            resolve(false);
-         }
+         console.log("Error in handleEvent:", error.message);
+         resolve(false);
       });
    });
 };
@@ -54,52 +20,40 @@ exports.handleEvent = (event) => {
 
 let checkEventDependencies = (event) => {
    return new Promise((resolve, reject) => {
-      console.log("Check dependencies for event:", event["event_ID"]);
-      userExists(event["user_ID"])
-      .then((pass) => {
-         let checks = [];
-         if (pass) {
-            checks.push(true);
-         } else {
-            reject(new Error("User does not exist"));
-            return;
-         }
+      console.log("Check dependencies for event:", event.event_ID);
+      DB.userExists(event.user_ID)
+      .then(() => {
+         let checks = [true];
          // Add dependency checks here
          if (event["timeDependent"]) {
             checks.push(withinTime(event["timeStart"], event["timeEnd"]))}
-         if (event["polyOnly"]) {checks.push(isPolyStudent(event["user_ID"]))}
-         console.log("Checks for event_ID:", event["event_ID"], " : ",checks);
+         if (event["polyOnly"]) {
+            checks.push(isPolyStudent(event.user_ID))}
+
+         console.log("Checks for event_ID:", event.event_ID, " : ", checks);
          Promise.all(checks)
          .then((checkArray) => {
-            console.log("Dependency check results for event_ID:", event["event_ID"],
-                     checkArray);
+            console.log("Dependency check results for event_ID:", event.event_ID)
+            console.log(checkArray);
             if(checkArray.every(check => check)){
-               resolve(true);
+               console.log("Event: ", event.event_ID, "passed dependency checks");
+               resolve();
             }else {
-               reject(new Error("Event: ", event["event_ID"], " Failed dependency check"));
+               console.log("Event: ", event.event_ID, "failed dependency checks");
+               reject(new Error("Event: ", event.event_ID, " Failed dependency check(s)"));
             }
          })
+      })
+      .catch(error => {
+         console.log(error);
+         reject(new Error("Event Failed dependency checks"));
       });
    });
 };
 
 
-let insertIntoAttendence = (user_ID, event_ID) => {
-   return new Promise((resolve, reject) => {
-      const query2 = "INSERT INTO Attendance (user_ID,event_ID) "
-                 + "VALUES (?, ?)";
-      d.query(query2, [user_ID, event_ID])
-      .then((events) => {
-         resolve(true);
-      })
-      .catch((error) => {
-         reject(error);
-      });
-   })
-};
-
-
 let withinTime = function(startTime, endTime) {
+   console.log("Making sure current time is between", startTime, "and", endTime);
    var sTime = startTime, eTime = endTime;
    return new Promise((resolve, reject) => {
       let today = new Date();
@@ -116,20 +70,18 @@ let withinTime = function(startTime, endTime) {
       endDate.setMinutes(endTime[1]);
       endDate.setSeconds(endTime[2]);
 
-      console.log("StartDate:", startDate);
-      console.log("endDate:", endDate);
-      console.log("today:", today);
-      console.log("startDate is less than now:", startDate < today);
-      console.log("endDate is greater than now:", endDate > today);
       if (startDate < today && endDate > today) {
+         console.log("Now is between startTime and endTime");
          resolve(true);
       }else{
+         console.log("Now is not between startTime and endTime");
          resolve(false);
       }
    });
 };
 
 let isPolyStudent = (id) => {
+   console.log("Checking if id: ", id, " is a poly student");
    return new Promise((resolve, reject) => {
       if ( id < 0 || id > POLYLIMIT) {
          console.log("User",id,"is not a polystudent");
@@ -138,22 +90,5 @@ let isPolyStudent = (id) => {
          console.log("User",id,"is a polystudent");
          resolve(true);
       }
-   });
-};
-
-let userExists = (id) => {
-   return new Promise((resolve, reject) => {
-      if (parseInt(id) == "NaN") {
-         resolve(false);
-      }
-      const query1 = "SELECT user_ID FROM Users WHERE user_ID = ?";
-      d.query(query1, [id])
-      .then((rows) => {
-         if (rows.length > 0) {
-            resolve(true);
-         }else {
-            resolve(false);
-         }
-      });
    });
 };
