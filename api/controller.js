@@ -1,39 +1,50 @@
 'use strict';
 
+
 // import necessary modules
-var rs = require('jsrsasign');
 let DB = require('./database');
 let t = require('./tools');
 
-const ALGORITHM = {'alg':'SHA256withECDSA'};
-const CURVE = "secp256r1";
-const TEST_PUB_KEY = "BBzK7u11lfwluDvMfSrZt3RC8XFH4f4zqMGqM43wqTpLXU_JsbBjgu5FsbW61FOl0v0mcajX6YD6VZIFMYkPsBI";
-
 exports.getVersion = function(req, res) {
-  res.json({todo: 'implement version call'});
+  res.status(501).json({todo: 'implement version call'});
 };
 
 exports.getEvents = function(req, res) {
   // get the room data with req.params.room
-  res.json({todo: 'implement getEvents call (' + req.params.room + ')'});
+  res.status(501).json({todo: 'implement getEvents call (' + req.params.room + ')'});
 };
 
 exports.test1 = function(req, res) {
-   res.json({message: 'Hello ' + req.params.name + ' welcome to the attendence server'});
+   res.status(200).json({message: 'Hello ' + req.params.name + ' welcome to the attendence server'});
 
 };
 
 exports.getAttendance = function(req, res) {
-   res.json({todo: "implement getAttendance call"});
+   res.status(501).json({todo: "implement getAttendance call"});
 };
 
+exports.createPin = (req, res) => {
+  /*
+  if (user is logged in and can do so)
+  {*/
+    DB.createPinCode(t.sanitize(req.params.eventKey))
+    .then((pin) => {
+      res.status(201).json({pinCode: pin});
+    })
+    .catch((e) => {
+      res.status(200).json({error: e.message});
+    })
+  /*} else {
+    res.status(403).json({});
+  }*/
+}
 // test function to allow us to add users to the table
 exports.addUser = function(req, res) {
    const query1 = "INSERT INTO Users VALUES (?, ?, ?, ?, ?)";
    if (req.body.user_ID){
       let user_ID = req.body.user_ID;
    }else{
-      res.json({status: 100, message: "UserID is necessary for this function."});
+      res.status(100).json({message: "UserID is necessary for this function."});
       return;
    }
 
@@ -43,14 +54,14 @@ exports.addUser = function(req, res) {
    let userName = req.body.userName || "";
 
 
-   var sData = [user_ID, firstName, lastName, email, userName];
+   var sData = t.sanitize([user_ID, firstName, lastName, email, userName]);
 
    DB.query(query1, sData)
    .then((rows) => {
       if (error) {
-         res.json({status: 203, message: "Failed to add user"});
+         res.status(200).json({message: "Failed to add user"});
       } else{
-         res.json({status: 200, message: "UserID: " + user_ID + " added successfully."});
+         res.status(201).json({message: "UserID: " + user_ID + " added successfully."});
       }
    });
 };
@@ -61,17 +72,17 @@ exports.getUser = function(req, res) {
               + "FROM Users "
               + "WHERE user_ID=?";
    if (parseInt(req.body.user_ID) == "NaN"){
-      res.json({status: 100, message: "user_ID is invalid! "
+      res.status(100).json({message: "user_ID is invalid! "
                                     + "Error: user_ID must be a number"});
       return;
    }
-   const data = [req.body.user_ID];
-   DB.query(query1, data)
+   const sData = t.sanitize([req.body.user_ID]);
+   DB.query(query1, sData)
    .then((rows) => {
       if (rows.length < 1){
-         res.json({status: 201, message:"No users exist"});
+         res.status(200).json({message:"No users exist"});
       }else{
-         res.json({status: 200, message: `User found with ID: $(data[0])`});
+         res.status(201).json({message: "User added successfully"});
       }
    });
 };
@@ -82,45 +93,62 @@ exports.getUser = function(req, res) {
 exports.addAttendance = (req, res) => {
    // Checks that the user_ID is a number
    if (isNaN(req.body.data.user_ID)) {
-      res.json({status: 100, message: "user_ID is not valid! "
+      res.status(400).json({message: "user_ID is not valid! "
                                     + "Error: user_ID must be a number"});
       return;
    }
-   var signedString = JSON.stringify(req.body.data);
-   var signitureVerify = new rs.KJUR.crypto.Signature(ALGORITHM);
-   signitureVerify.init(new rs.KJUR.crypto.ECDSA({'curve': CURVE, 'pub': rs.b64utohex(TEST_PUB_KEY)}));
-   signitureVerify.updateString(signedString);
-   if(!signitureVerify.verify(rs.b64utohex(req.body.signiture))) {
-     console.log("Bad Signature");
-     res.json({status: 403, message: "Signature is not valid! " + "Error: Kiosk isn't authenticated!"});
+   t.checkSignature(req.body.data, req.body.signature)
+   .catch((e) => {
+     console.log(e);
+     res.status(403).json({message: "Kiosk isn't authenticated!"});
      return;
-   }
-
-   DB.getEventInfo(req.body.data.eventKey)
-   .then((events) => {
-      // Adds user_ID for dependency checks
-      events = events.map(event => {
-         event["user_ID"] = req.body.data.user_ID;
-         return event;
-      });
-      let handleEventPromiseArray = events.map(event => t.handleEvent(event));
-      return Promise.all(handleEventPromiseArray);
    })
-   .then((eventChecks) => {
-      let entries = eventChecks.reduce((sum, x) => {if (x) {return sum+1} else {return sum}}, 0);
-      if(entries > 0) {
-         res.json({status: 200, message: "Added " + entries
-                                    + " entries to attendance table"});
-      } else {
-         res.json({status: 203, message: "No attendance entry added!"});
-      }
-   })
-   .catch((error) => {
-      console.log(error);
-      res.json({status: 203, message: "No attendance entry added!"});
-   })
+   .then((sigOK) => {
+     if(sigOK) {
+       DB.getEventInfo(t.sanitize(req.body.data.eventKey))
+       .then((events) => {
+          // Adds user_ID for dependency checks
+          events = events.map(event => {
+             event["user_ID"] = t.sanitize(req.body.data.user_ID);
+             return event;
+          });
+          let handleEventPromiseArray = events.map(event => t.handleEvent(event).catch((e) =>{return Promise.reject(e)}));
+          return Promise.all(handleEventPromiseArray);
+       })
+       .then((eventChecks) => {
+          let entries = eventChecks.reduce((sum, x) => {if (x) {return sum+1} else {return sum}}, 0);
+          if(entries > 0) {
+             res.json({status: 201, message: "Added " + entries
+                                        + " entries to attendance table"});
+          } else {
+             res.json({status: 200, message: "No attendance entry added!"});
+          }
+       })
+       .catch((error) => {
+          if(error === "Bad Signature") {
+            console.log("Bad Signature");
+            res.status(403).json({message: "Kiosk isn't authenticated!"});
+          } else if(error == "Error: User is already attending") {
+            res.status(200).json({message: "User is already attending", genNewKey: true});
+          } else if(error == "Error: User does not exist") {
+            res.status(200).json({message: "User does not exist", genNewKey: true});
+          } else if(error == "Error: No events exist with that eventKey") {
+            res.status(200).json({message: "No events exist for this kiosk", genNewKey: true});
+          } else {
+            console.log("unhandled error:", error);
+            res.status(200).json({message: "No attendance entry added!"});
+          }
+       })
+     }
+   });
 };
 
 exports.authenticate = (req, res) => {
-  res.json({todo: 'implement version call'});
+DB.checkAndSaveKey(t.sanitize(req.body.pin), t.sanitize(req.body.key))
+  .then((eventKey) => {
+    res.status(201).json({key: eventKey});
+  })
+  .catch((e) => {
+    res.status(200).json({messsage: "could not authenticate"});
+  });
 }

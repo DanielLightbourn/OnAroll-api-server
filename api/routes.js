@@ -34,5 +34,8 @@ module.exports = function(app) {
   // authenticate a kiosk so that it may add attendances
   app.route('/authenticate')
     .post(controller.authenticate);
-
+    
+  // Test get to create a pin code for the given event key
+  app.route('/TempCreatePin/:eventKey')
+    .get(controller.createPin);
 };

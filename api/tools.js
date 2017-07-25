@@ -1,22 +1,51 @@
 'use strict';
 
 let DB = require('./database');
+let RS = require('jsrsasign');
 
 let POLYLIMIT = 9999;
+const ALGORITHM = {'alg':'SHA256withECDSA'};
+const CURVE = "secp256r1";
 
+exports.sanitize = (data) => {
+  console.error("WARING SANITIZE IS NOT IMPLEMENTED!");
+  return data;
+}
 
 exports.handleEvent = (event) => {
    return new Promise((resolve, reject) => {
       checkEventDependencies(event)
       .then(() => {return DB.insertIntoAttendence(event["user_ID"], event["event_ID"])})
       .then(() => {resolve(true)})
-      .catch((error) => {
-         console.log("Error in handleEvent:", error.message);
-         resolve(false);
-      });
+      .catch((e) => {reject(e);});
    });
 };
 
+exports.checkSignature = (signedData, signature) => {
+  return new Promise((resolve, reject) => {
+    DB.getPublicKey(exports.sanitize(signedData.eventKey))
+    .then((publicKey) => {
+      if(publicKey.length > 0) {
+        var signedString = JSON.stringify(signedData);
+        var signatureVerify = new RS.KJUR.crypto.Signature(ALGORITHM);
+        signatureVerify.init(new RS.KJUR.crypto.ECDSA({'curve': CURVE, 'pub': RS.b64utohex(publicKey[0]["pubKey"])}));
+        signatureVerify.updateString(signedString);
+        if(!signatureVerify.verify(RS.b64utohex(signature))) {
+          return reject("Bad Signature")
+        } else {
+          //replace old key with the new one if it exists
+          if(signedData.newKey != undefined) {
+            DB.updateKey(exports.sanitize(signedData.eventKey), exports.sanitize(signedData.newKey))
+            .catch((e) => {reject(e)});
+          }
+          resolve(true);
+        }
+      } else {
+        return reject("Bad Signature")
+      }
+    })
+  })
+}
 
 let checkEventDependencies = (event) => {
    return new Promise((resolve, reject) => {
@@ -30,6 +59,7 @@ let checkEventDependencies = (event) => {
          if (event["polyOnly"]) {
             checks.push(isPolyStudent(event.user_ID))}
 
+         checks.push(DB.checkDupAttendence(event["user_ID"], event["event_ID"]).catch(e => {reject(e);}));
          console.log("Checks for event_ID:", event.event_ID, " : ", checks);
          Promise.all(checks)
          .then((checkArray) => {
@@ -45,8 +75,7 @@ let checkEventDependencies = (event) => {
          })
       })
       .catch(error => {
-         console.log(error);
-         reject(new Error("Event Failed dependency checks"));
+         reject(error);
       });
    });
 };
